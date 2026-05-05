@@ -170,6 +170,18 @@
 
     <!-- ADMIN VIEW -->
     <div id="adminView" class="hidden">
+        <!-- SETTINGS CARD FOR KWH RATE -->
+        <div class="dashboard-card">
+            <div class="card-header"><h2>System Settings</h2></div>
+            <div style="padding: 1.5rem; display: flex; align-items: center; gap: 15px;">
+                <div>
+                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Electricity Rate (₱ per kWh):</label>
+                    <input type="number" id="adminKwhRate" step="0.01" style="width: 150px; margin-top: 5px;">
+                </div>
+                <button class="btn btn-primary" id="saveRateBtn" style="margin-top: 20px;">Update Rate</button>
+            </div>
+        </div>
+
         <div class="dashboard-card">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
                 <h2>Inquiries</h2>
@@ -197,7 +209,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -254,9 +266,30 @@
         { name: "Vacuum Cleaner", w: 1000 }
     ].sort((a, b) => a.name.localeCompare(b.name));
 
-    let KWH_RATE = 11.50; 
+    let KWH_RATE = 11.50; // Default
     let currentDaily = 0, currentCost = 0;
     let rawInquiries = [];
+
+    // Listen for Rate changes from DB
+    onValue(ref(db, 'settings/kwhRate'), (snapshot) => {
+        if(snapshot.exists()){
+            KWH_RATE = parseFloat(snapshot.val());
+            document.getElementById('adminKwhRate').value = KWH_RATE;
+            // Recalculate everything with new rate
+            const method = document.getElementById('btnOptA').classList.contains('active') ? 'A' : 'B';
+            if(method === 'A') calculateByBill(); else updateTable();
+        }
+    });
+
+    // Save Rate to DB
+    document.getElementById('saveRateBtn').onclick = () => {
+        const newRate = parseFloat(document.getElementById('adminKwhRate').value);
+        if(newRate > 0) {
+            set(ref(db, 'settings/kwhRate'), newRate)
+                .then(() => alert("Rate updated successfully!"))
+                .catch(err => alert("Error: " + err.message));
+        }
+    };
 
     window.showView = (v) => {
         document.getElementById('calculatorView').classList.add('hidden');
