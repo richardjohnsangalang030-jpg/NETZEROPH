@@ -68,6 +68,9 @@
         .filter-container label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
         .filter-container input { width: auto; padding: 0.5rem; font-size: 0.85rem; }
 
+        .price-settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; padding: 1.5rem; }
+        .price-input-group { display: flex; flex-direction: column; gap: 5px; }
+
         @media (min-width: 768px) {
             .brand-text h1 { font-size: 1.5rem; }
             .results-container { grid-template-columns: 1fr 1fr; }
@@ -91,7 +94,6 @@
 
 <main class="main-content">
     
-    <!-- MAIN CALCULATOR VIEW -->
     <div id="calculatorView">
         <div class="dashboard-card">
             <div class="card-header"><h2>1. Energy Estimation</h2></div>
@@ -134,8 +136,8 @@
                 </div>
                 <div class="result-block financial-block">
                     <div class="stat-grid">
-                        <div class="stat-group"><label>Est. Monthly Bill</label><span id="resCostA">₱0.00</span></div>
-                        <div class="stat-group"><label>Solar System Size</label><span id="resInverterA" class="highlight-text">---</span></div>
+                        <div class="stat-group"><label>Recommended System</label><span id="resInverterA" class="highlight-text">---</span></div>
+                        <div class="stat-group"><label>Est. Package Price</label><span id="resSystemPrice" class="highlight-text">₱0.00</span></div>
                     </div>
                 </div>
             </div>
@@ -150,14 +152,13 @@
                 <input type="text" id="clientAddress" placeholder="Location (City/Province)">
             </div>
             <div style="padding: 0 1.5rem 1.5rem;">
-                <button id="submitBtn" class="btn btn-success" style="width: 100%; padding: 1rem; font-size: 1rem; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);">
+                <button id="submitBtn" class="btn btn-success" style="width: 100%; padding: 1rem; font-size: 1rem;">
                     Submit for Free Consultation
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- LOGIN VIEW -->
     <div id="loginView" class="hidden">
         <div style="max-width: 400px; margin: 40px auto; padding: 2rem; background: white; border-radius: 16px; border: 1px solid var(--ui-border);">
             <h2 style="margin-bottom: 1.5rem; text-align: center;">Admin Access</h2>
@@ -168,17 +169,14 @@
         </div>
     </div>
 
-    <!-- ADMIN VIEW -->
     <div id="adminView" class="hidden">
-        <!-- SETTINGS CARD FOR KWH RATE -->
         <div class="dashboard-card">
-            <div class="card-header"><h2>System Settings</h2></div>
-            <div style="padding: 1.5rem; display: flex; align-items: center; gap: 15px;">
-                <div>
-                    <label style="font-size: 0.8rem; font-weight: 700; color: var(--text-muted);">Electricity Rate (₱ per kWh):</label>
-                    <input type="number" id="adminKwhRate" step="0.01" style="width: 150px; margin-top: 5px;">
-                </div>
-                <button class="btn btn-primary" id="saveRateBtn" style="margin-top: 20px;">Update Rate</button>
+            <div class="card-header"><h2>Inventory & Pricing Settings</h2></div>
+            <div style="padding: 1rem 1.5rem;"><label>Electricity Rate (₱/kWh):</label><input type="number" id="adminKwhRate" step="0.01" style="width: 120px;"></div>
+            <div class="price-settings-grid" id="priceInputsContainer">
+            </div>
+            <div style="padding: 0 1.5rem 1.5rem;">
+                <button class="btn btn-primary" id="saveAdminSettings">Update Prices & Rate</button>
             </div>
         </div>
 
@@ -187,16 +185,13 @@
                 <h2>Inquiries</h2>
                 <div style="display: flex; gap: 10px;">
                     <button class="btn btn-outline" onclick="showView('calculator')">Back</button>
-                    <button class="btn btn-success" id="exportCsvBtn" style="padding: 0.5rem 0.75rem; font-size: 0.75rem;">Export CSV</button>
+                    <button class="btn btn-success" id="exportCsvBtn">Export CSV</button>
                 </div>
             </div>
-            
             <div class="filter-container">
-                <label for="monthFilter">View by Month:</label>
                 <input type="month" id="monthFilter">
                 <button class="btn btn-outline" id="clearFilterBtn">Show All</button>
             </div>
-
             <div class="table-area">
                 <table>
                     <thead><tr><th>Date</th><th>Client</th><th>Contact</th><th>System</th><th>Action</th></tr></thead>
@@ -209,7 +204,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onValue, remove, set } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, push, onValue, remove, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -223,85 +218,122 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    // EXPANDED APPLIANCE LIBRARY
     const applianceLibrary = [
-        { name: "LED Bulb (7W)", w: 7 },
+        // LIGHTING
+        { name: "LED Bulb (5W)", w: 5 },
         { name: "LED Bulb (9W)", w: 9 },
         { name: "LED Bulb (12W)", w: 12 },
-        { name: "Fluorescent Light (36W)", w: 40 },
-        { name: "Electric Fan (Desk/Stand)", w: 65 },
+        { name: "Fluorescent Tube (36W)", w: 40 },
+        
+        // COOLING & VENTILATION
+        { name: "Electric Fan (Desk)", w: 50 },
+        { name: "Electric Fan (Stand)", w: 65 },
         { name: "Ceiling Fan", w: 75 },
-        { name: "Smart TV (32 inch)", w: 50 },
-        { name: "Smart TV (43-55 inch)", w: 100 },
-        { name: "Smart TV (65 inch+)", w: 150 },
-        { name: "Refrigerator (7-9 cu ft Inverter)", w: 120 },
-        { name: "Refrigerator (Double Door Inverter)", w: 200 },
-        { name: "Chest Freezer", w: 150 },
-        { name: "Aircon 0.5HP (Window)", w: 500 },
+        { name: "Aircon 0.5HP (Window)", w: 550 },
         { name: "Aircon 1.0HP (Inverter)", w: 850 },
         { name: "Aircon 1.5HP (Inverter)", w: 1200 },
         { name: "Aircon 2.0HP (Inverter)", w: 1800 },
         { name: "Aircon 2.5HP (Inverter)", w: 2300 },
-        { name: "Washing Machine (Front Load)", w: 500 },
-        { name: "Washing Machine (Top Load)", w: 400 },
-        { name: "Spin Dryer", w: 300 },
+
+        // KITCHEN APPLIANCES
+        { name: "Refrigerator (Small)", w: 100 },
+        { name: "Refrigerator (Inverter)", w: 150 },
+        { name: "Side-by-Side Fridge", w: 400 },
+        { name: "Microwave Oven", w: 1000 },
         { name: "Electric Kettle", w: 1500 },
         { name: "Rice Cooker (Small)", w: 400 },
-        { name: "Rice Cooker (Large)", w: 800 },
-        { name: "Microwave Oven", w: 1000 },
-        { name: "Induction Cooker (1 Burner)", w: 1500 },
-        { name: "Induction Cooker (2 Burner)", w: 3000 },
-        { name: "Electric Oven", w: 2000 },
-        { name: "Air Fryer", w: 1300 },
+        { name: "Rice Cooker (Large)", w: 900 },
+        { name: "Induction Cooker (1-Burner)", w: 2000 },
         { name: "Coffee Maker", w: 800 },
-        { name: "Laptop", w: 65 },
-        { name: "Desktop Computer (Office)", w: 200 },
-        { name: "Gaming PC", w: 450 },
-        { name: "Wi-Fi Router", w: 10 },
-        { name: "CCTV System (4 Cameras)", w: 50 },
-        { name: "Water Pump (0.5 HP)", w: 375 },
-        { name: "Water Pump (1.0 HP)", w: 750 },
-        { name: "Electric Iron", w: 1000 },
-        { name: "Hair Dryer", w: 1200 },
-        { name: "Vacuum Cleaner", w: 1000 }
+        { name: "Blender", w: 300 },
+        { name: "Air Fryer", w: 1500 },
+        { name: "Toaster Oven", w: 1200 },
+
+        // ENTERTAINMENT & OFFICE
+        { name: "Smart TV (32-43\")", w: 60 },
+        { name: "Smart TV (50-65\")", w: 120 },
+        { name: "Sound System / Soundbar", w: 50 },
+        { name: "Gaming Console (PS5/Xbox)", w: 200 },
+        { name: "Laptop / Macbook", w: 65 },
+        { name: "Desktop Computer (Standard)", w: 250 },
+        { name: "Gaming PC (High End)", w: 600 },
+        { name: "Monitor (LCD/LED)", w: 30 },
+        { name: "WiFi Router / Modem", w: 15 },
+        { name: "CCTV System (4-Ch)", w: 40 },
+
+        // LAUNDRY & CLEANING
+        { name: "Washing Machine (Top Load)", w: 400 },
+        { name: "Washing Machine (Front Load)", w: 1800 },
+        { name: "Clothes Dryer", w: 2500 },
+        { name: "Flat Iron", w: 1100 },
+        { name: "Vacuum Cleaner", w: 1200 },
+
+        // PUMPS & OTHERS
+        { name: "Water Pump (0.5HP)", w: 375 },
+        { name: "Water Pump (1.0HP)", w: 750 },
+        { name: "Water Heater (Multipoint)", w: 3500 },
+        { name: "Water Heater (Single Point)", w: 2500 },
+        { name: "Hair Dryer", w: 1500 },
+        { name: "Phone Charger", w: 15 }
     ].sort((a, b) => a.name.localeCompare(b.name));
 
-    let KWH_RATE = 11.50; // Default
-    let currentDaily = 0, currentCost = 0;
-    let rawInquiries = [];
+    let sysConfig = {
+        rate: 11.50,
+        prices: {
+            "3kW": 150000,
+            "5kW": 250000,
+            "8kW": 380000,
+            "10kW": 450000,
+            "16kW": 680000,
+            "20kW": 850000,
+            "Commercial": 0
+        }
+    };
 
-    // Listen for Rate changes from DB
-    onValue(ref(db, 'settings/kwhRate'), (snapshot) => {
+    let currentDaily = 0, currentCost = 0, rawInquiries = [];
+
+    onValue(ref(db, 'settings'), (snapshot) => {
         if(snapshot.exists()){
-            KWH_RATE = parseFloat(snapshot.val());
-            document.getElementById('adminKwhRate').value = KWH_RATE;
-            // Recalculate everything with new rate
-            const method = document.getElementById('btnOptA').classList.contains('active') ? 'A' : 'B';
-            if(method === 'A') calculateByBill(); else updateTable();
+            const data = snapshot.val();
+            if(data.kwhRate) sysConfig.rate = parseFloat(data.kwhRate);
+            if(data.prices) sysConfig.prices = data.prices;
+            
+            document.getElementById('adminKwhRate').value = sysConfig.rate;
+            renderPriceAdmin();
+            refreshUI();
         }
     });
 
-    // Save Rate to DB
-    document.getElementById('saveRateBtn').onclick = () => {
+    function renderPriceAdmin() {
+        const container = document.getElementById('priceInputsContainer');
+        container.innerHTML = "";
+        Object.keys(sysConfig.prices).forEach(key => {
+            const div = document.createElement('div');
+            div.className = "price-input-group";
+            div.innerHTML = `<label style="font-size:0.7rem; font-weight:700;">${key} Price (₱)</label>
+                             <input type="number" class="sys-price-input" data-key="${key}" value="${sysConfig.prices[key]}">`;
+            container.appendChild(div);
+        });
+    }
+
+    document.getElementById('saveAdminSettings').onclick = () => {
         const newRate = parseFloat(document.getElementById('adminKwhRate').value);
-        if(newRate > 0) {
-            set(ref(db, 'settings/kwhRate'), newRate)
-                .then(() => alert("Rate updated successfully!"))
-                .catch(err => alert("Error: " + err.message));
-        }
+        const newPrices = {};
+        document.querySelectorAll('.sys-price-input').forEach(input => {
+            newPrices[input.dataset.key] = parseFloat(input.value) || 0;
+        });
+        
+        update(ref(db, 'settings'), { kwhRate: newRate, prices: newPrices })
+            .then(() => alert("Settings Updated!"))
+            .catch(err => alert("Error: " + err.message));
     };
 
     window.showView = (v) => {
-        document.getElementById('calculatorView').classList.add('hidden');
-        document.getElementById('loginView').classList.add('hidden');
-        document.getElementById('adminView').classList.add('hidden');
+        ['calculatorView', 'loginView', 'adminView'].forEach(id => document.getElementById(id).classList.add('hidden'));
         document.getElementById(v + 'View').classList.remove('hidden');
     };
 
-    document.getElementById('navAdminBtn').onclick = () => {
-        if(auth.currentUser) showView('admin');
-        else showView('login');
-    };
+    document.getElementById('navAdminBtn').onclick = () => auth.currentUser ? showView('admin') : showView('login');
     document.getElementById('backToCalc').onclick = () => showView('calculator');
 
     window.switchMethod = (m) => {
@@ -310,31 +342,27 @@
         document.getElementById('sectionBill').classList.toggle('hidden', m !== 'A');
         document.getElementById('sectionAppliances').classList.toggle('hidden', m !== 'B');
         document.getElementById('resBlockB').classList.toggle('hidden', m !== 'B');
-        if(m === 'A') calculateByBill(); else updateTable();
+        m === 'A' ? calculateByBill() : updateTable();
     };
 
     window.addRow = () => {
         const tr = document.createElement('tr');
         let options = applianceLibrary.map(a => `<option value="${a.w}">${a.name}</option>`).join('');
         tr.innerHTML = `
-            <td><select onchange="syncWatts(this)" style="font-size:0.9rem;"><option value="0">Select...</option>${options}<option value="custom">Custom</option></select></td>
+            <td><select onchange="syncWatts(this)"><option value="0">Select...</option>${options}<option value="custom">Custom</option></select></td>
             <td><input type="number" class="w" placeholder="W" oninput="updateTable()"></td>
             <td><input type="number" class="q" value="1" oninput="updateTable()"></td>
             <td><input type="number" class="h" value="1" oninput="updateTable()"></td>
-            <td class="row-kwh" style="font-weight:bold; color:var(--brand-secondary);">0.0</td>
-            <td><button class="btn-danger" onclick="this.parentElement.parentElement.remove();updateTable();" style="padding: 5px 10px;">×</button></td>
+            <td class="row-kwh">0.0</td>
+            <td><button class="btn-danger" onclick="this.parentElement.parentElement.remove();updateTable();">×</button></td>
         `;
         document.getElementById('applianceBody').appendChild(tr);
     };
 
     window.syncWatts = (el) => {
-        const val = el.value;
         const wInput = el.parentElement.parentElement.querySelector('.w');
-        if(val !== "custom") {
-            wInput.value = val; wInput.readOnly = true; wInput.style.background = "#f1f5f9";
-        } else {
-            wInput.value = ""; wInput.readOnly = false; wInput.style.background = "#fff"; wInput.focus();
-        }
+        if(el.value !== "custom") { wInput.value = el.value; wInput.readOnly = true; } 
+        else { wInput.value = ""; wInput.readOnly = false; wInput.focus(); }
         updateTable();
     };
 
@@ -349,37 +377,43 @@
             daily += rKwh;
         });
         currentDaily = daily;
-        currentCost = daily * 30 * KWH_RATE;
         refreshUI();
     };
 
     window.calculateByBill = () => {
-        currentCost = parseFloat(document.getElementById('billInput').value) || 0;
-        currentDaily = (currentCost / KWH_RATE) / 30;
+        const bill = parseFloat(document.getElementById('billInput').value) || 0;
+        currentDaily = (bill / sysConfig.rate) / 30;
         refreshUI();
     };
 
     function refreshUI() {
-        document.getElementById('resCostA').innerText = '₱' + currentCost.toLocaleString(undefined, {maximumFractionDigits: 0});
-        document.getElementById('resInverterA').innerText = getSystemSize(currentDaily);
+        const result = getSystemRecommendation(currentDaily);
+        document.getElementById('resInverterA').innerText = result.size;
+        document.getElementById('resSystemPrice').innerText = '₱' + result.price.toLocaleString();
         document.getElementById('resDailyB').innerText = currentDaily.toFixed(2) + ' kWh';
         document.getElementById('resMonthlyB').innerText = (currentDaily * 30).toFixed(0) + ' kWh';
     }
 
-    function getSystemSize(daily) {
-        if (daily <= 0) return "---";
-        const size = daily / 3.5; 
-        if (size <= 1.5) return "1.5kW System";
-        if (size <= 3) return "3kW System";
-        if (size <= 5) return "5kW System";
-        if (size <= 10) return "10kW System";
-        return "Commercial";
+    function getSystemRecommendation(daily) {
+        if (daily <= 0) return { size: "---", price: 0 };
+        const kwNeeded = daily / 3.5; 
+        
+        let size = "Commercial";
+        if (kwNeeded <= 3) size = "3kW";
+        else if (kwNeeded <= 5) size = "5kW";
+        else if (kwNeeded <= 8) size = "8kW";
+        else if (kwNeeded <= 10) size = "10kW";
+        else if (kwNeeded <= 16) size = "16kW";
+        else if (kwNeeded <= 20) size = "20kW";
+
+        return {
+            size: size === "Commercial" ? "Commercial Scale" : size + " System",
+            price: sysConfig.prices[size] || 0
+        };
     }
 
     document.getElementById('doLoginBtn').onclick = () => {
-        const email = document.getElementById('loginEmail').value;
-        const pass = document.getElementById('loginPass').value;
-        signInWithEmailAndPassword(auth, email, pass)
+        signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value, document.getElementById('loginPass').value)
             .then(() => showView('admin'))
             .catch(err => alert("Login Failed: " + err.message));
     };
@@ -389,26 +423,14 @@
     onAuthStateChanged(auth, user => {
         if (user) {
             document.getElementById('logoutBtn').classList.remove('hidden');
-            document.getElementById('navAdminBtn').innerText = "Dashboard";
             loadInquiries();
         }
     });
 
-    document.getElementById('monthFilter').addEventListener('change', (e) => {
-        renderTable(e.target.value);
-    });
-
-    document.getElementById('clearFilterBtn').onclick = () => {
-        document.getElementById('monthFilter').value = "";
-        renderTable("");
-    };
-
     function loadInquiries() {
         onValue(ref(db, 'inquiries'), (snapshot) => {
             rawInquiries = [];
-            snapshot.forEach(child => {
-                rawInquiries.push({ key: child.key, ...child.val() });
-            });
+            snapshot.forEach(child => { rawInquiries.push({ key: child.key, ...child.val() }); });
             renderTable();
         });
     }
@@ -417,35 +439,25 @@
         const body = document.getElementById('adminTableBody');
         body.innerHTML = "";
         rawInquiries.forEach(data => {
-            const dateObj = new Date(data.timestamp);
-            const monthKey = `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-            if (filterMonth && monthKey !== filterMonth) return;
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${data.dateDisplay}</td>
-                <td>${data.name}</td>
-                <td>${data.contact}</td>
-                <td>${data.rec}</td>
-                <td><button class="btn-danger" onclick="deleteInquiry('${data.key}')" style="padding:5px 10px;">Del</button></td>
-            `;
+            tr.innerHTML = `<td>${data.dateDisplay}</td><td>${data.name}</td><td>${data.contact}</td><td>${data.rec}</td>
+                            <td><button class="btn-danger" onclick="deleteInquiry('${data.key}')">Del</button></td>`;
             body.appendChild(tr);
         });
     }
 
-    window.deleteInquiry = (key) => { if(confirm('Delete this?')) remove(ref(db, 'inquiries/' + key)); };
+    window.deleteInquiry = (key) => { if(confirm('Delete?')) remove(ref(db, 'inquiries/' + key)); };
 
     document.getElementById('submitBtn').onclick = () => {
         const name = document.getElementById('clientName').value;
         const contact = document.getElementById('clientContact').value;
-        if(!name || !contact) return alert("Please enter name and contact");
-        const d = new Date();
+        if(!name || !contact) return alert("Missing Info");
+        const rec = getSystemRecommendation(currentDaily);
         push(ref(db, 'inquiries'), {
-            timestamp: d.getTime(), 
-            dateDisplay: d.toLocaleDateString(),
+            timestamp: Date.now(), dateDisplay: new Date().toLocaleDateString(),
             name, contact, email: document.getElementById('clientEmail').value,
-            address: document.getElementById('clientAddress').value,
-            bill: currentCost.toFixed(2), rec: getSystemSize(currentDaily)
-        }).then(() => { alert("Success! We will contact you."); location.reload(); });
+            rec: rec.size, price: rec.price
+        }).then(() => { alert("Proposal Request Sent!"); location.reload(); });
     };
 
     addRow();
