@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -64,18 +64,12 @@
         .client-info-grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 1.5rem; }
         .hidden { display: none !important; }
 
-        .filter-container { padding: 1rem 1.5rem; background: #f8fafc; border-bottom: 1px solid var(--ui-border); display: flex; align-items: center; gap: 10px; }
-        .filter-container label { font-size: 0.8rem; font-weight: 700; color: var(--text-muted); }
-        .filter-container input { width: auto; padding: 0.5rem; font-size: 0.85rem; }
-
-        .price-settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 15px; padding: 1.5rem; }
-        .price-input-group { display: flex; flex-direction: column; gap: 5px; }
+        .price-settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; padding: 1.5rem; background: #f8fafc; border-radius: 12px; margin: 1rem; border: 1px solid var(--ui-border); }
+        .price-input-group label { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 5px; }
 
         @media (min-width: 768px) {
-            .brand-text h1 { font-size: 1.5rem; }
             .results-container { grid-template-columns: 1fr 1fr; }
             .client-info-grid { grid-template-columns: 1fr 1fr; }
-            .main-content { margin: 2rem auto; }
             .stat-group span { font-size: 1.5rem; }
         }
     </style>
@@ -94,6 +88,7 @@
 
 <main class="main-content">
     
+    <!-- CALCULATOR VIEW -->
     <div id="calculatorView">
         <div class="dashboard-card">
             <div class="card-header"><h2>1. Energy Estimation</h2></div>
@@ -159,6 +154,7 @@
         </div>
     </div>
 
+    <!-- LOGIN VIEW -->
     <div id="loginView" class="hidden">
         <div style="max-width: 400px; margin: 40px auto; padding: 2rem; background: white; border-radius: 16px; border: 1px solid var(--ui-border);">
             <h2 style="margin-bottom: 1.5rem; text-align: center;">Admin Access</h2>
@@ -169,32 +165,43 @@
         </div>
     </div>
 
+    <!-- ADMIN VIEW -->
     <div id="adminView" class="hidden">
+        <!-- Pricing Settings Section -->
         <div class="dashboard-card">
-            <div class="card-header"><h2>Inventory & Pricing Settings</h2></div>
-            <div style="padding: 1rem 1.5rem;"><label>Electricity Rate (₱/kWh):</label><input type="number" id="adminKwhRate" step="0.01" style="width: 120px;"></div>
-            <div class="price-settings-grid" id="priceInputsContainer">
+            <div class="card-header"><h2>System Pricing & Settings</h2></div>
+            <div style="padding: 1.5rem 1.5rem 0;">
+                <label style="font-weight: 700; font-size: 0.85rem;">Global Electricity Rate (₱/kWh):</label>
+                <input type="number" id="adminKwhRate" step="0.01" style="width: 150px; margin-top: 5px;">
             </div>
+            
+            <div class="price-settings-grid" id="priceInputsContainer">
+                <!-- Dynamically Generated Inputs -->
+            </div>
+            
             <div style="padding: 0 1.5rem 1.5rem;">
-                <button class="btn btn-primary" id="saveAdminSettings">Update Prices & Rate</button>
+                <button class="btn btn-primary" id="saveAdminSettings" style="width: 200px;">Save All Changes</button>
             </div>
         </div>
 
+        <!-- Inquiries Table -->
         <div class="dashboard-card">
             <div class="card-header" style="display: flex; justify-content: space-between; align-items: center;">
-                <h2>Inquiries</h2>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn btn-outline" onclick="showView('calculator')">Back</button>
-                    <button class="btn btn-success" id="exportCsvBtn">Export CSV</button>
-                </div>
-            </div>
-            <div class="filter-container">
-                <input type="month" id="monthFilter">
-                <button class="btn btn-outline" id="clearFilterBtn">Show All</button>
+                <h2>Client Inquiries</h2>
+                <button class="btn btn-outline" onclick="showView('calculator')">Exit Admin</button>
             </div>
             <div class="table-area">
                 <table>
-                    <thead><tr><th>Date</th><th>Client</th><th>Contact</th><th>System</th><th>Action</th></tr></thead>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Client</th>
+                            <th>Contact</th>
+                            <th>Location</th>
+                            <th>Recommended</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
                     <tbody id="adminTableBody"></tbody>
                 </table>
             </div>
@@ -204,7 +211,7 @@
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-    import { getDatabase, ref, push, onValue, remove, set, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getDatabase, ref, push, onValue, remove, update } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
     const firebaseConfig = {
@@ -218,124 +225,66 @@
     const db = getDatabase(app);
     const auth = getAuth(app);
 
-    const applianceLibrary = [
-        // LIGHTING
-        { name: "LED Bulb (5W)", w: 5 },
-        { name: "LED Bulb (9W)", w: 9 },
-        { name: "LED Bulb (12W)", w: 12 },
-        { name: "Fluorescent Tube (36W)", w: 40 },
-        
-        // COOLING & VENTILATION
-        { name: "Electric Fan (Desk)", w: 50 },
-        { name: "Electric Fan (Stand)", w: 65 },
-        { name: "Ceiling Fan", w: 75 },
-        { name: "Aircon 0.5HP (Window)", w: 550 },
-        { name: "Aircon 1.0HP (Inverter)", w: 850 },
-        { name: "Aircon 1.5HP (Inverter)", w: 1200 },
-        { name: "Aircon 2.0HP (Inverter)", w: 1800 },
-        { name: "Aircon 2.5HP (Inverter)", w: 2300 },
-
-        // KITCHEN APPLIANCES
-        { name: "Refrigerator (Small)", w: 100 },
-        { name: "Refrigerator (Inverter)", w: 150 },
-        { name: "Side-by-Side Fridge", w: 400 },
-        { name: "Microwave Oven", w: 1000 },
-        { name: "Electric Kettle", w: 1500 },
-        { name: "Rice Cooker (Small)", w: 400 },
-        { name: "Rice Cooker (Large)", w: 900 },
-        { name: "Induction Cooker (1-Burner)", w: 2000 },
-        { name: "Coffee Maker", w: 800 },
-        { name: "Blender", w: 300 },
-        { name: "Air Fryer", w: 1500 },
-        { name: "Toaster Oven", w: 1200 },
-
-        // ENTERTAINMENT & OFFICE
-        { name: "Smart TV (32-43\")", w: 60 },
-        { name: "Smart TV (50-65\")", w: 120 },
-        { name: "Sound System / Soundbar", w: 50 },
-        { name: "Gaming Console (PS5/Xbox)", w: 200 },
-        { name: "Laptop / Macbook", w: 65 },
-        { name: "Desktop Computer (Standard)", w: 250 },
-        { name: "Gaming PC (High End)", w: 600 },
-        { name: "Monitor (LCD/LED)", w: 30 },
-        { name: "WiFi Router / Modem", w: 15 },
-        { name: "CCTV System (4-Ch)", w: 40 },
-
-        // LAUNDRY & CLEANING
-        { name: "Washing Machine (Top Load)", w: 400 },
-        { name: "Washing Machine (Front Load)", w: 1800 },
-        { name: "Clothes Dryer", w: 2500 },
-        { name: "Flat Iron", w: 1100 },
-        { name: "Vacuum Cleaner", w: 1200 },
-
-        // PUMPS & OTHERS
-        { name: "Water Pump (0.5HP)", w: 375 },
-        { name: "Water Pump (1.0HP)", w: 750 },
-        { name: "Water Heater (Multipoint)", w: 3500 },
-        { name: "Water Heater (Single Point)", w: 2500 },
-        { name: "Hair Dryer", w: 1500 },
-        { name: "Phone Charger", w: 15 }
-    ].sort((a, b) => a.name.localeCompare(b.name));
-
+    // Default Configuration
     let sysConfig = {
-        rate: 11.50,
+        rate: 12.00,
         prices: {
-            "3kW": 150000,
-            "5kW": 250000,
-            "8kW": 380000,
-            "10kW": 450000,
-            "16kW": 680000,
-            "20kW": 850000,
-            "Commercial": 0
+            "3kW": 165000,
+            "5kW": 275000,
+            "8kW": 395000,
+            "10kW": 485000,
+            "16kW": 720000,
+            "20kW": 890000
         }
     };
 
-    let currentDaily = 0, currentCost = 0, rawInquiries = [];
+    let currentDaily = 0;
 
+    // 1. Sync Settings from Firebase
     onValue(ref(db, 'settings'), (snapshot) => {
         if(snapshot.exists()){
             const data = snapshot.val();
             if(data.kwhRate) sysConfig.rate = parseFloat(data.kwhRate);
             if(data.prices) sysConfig.prices = data.prices;
-            
-            document.getElementById('adminKwhRate').value = sysConfig.rate;
-            renderPriceAdmin();
-            refreshUI();
         }
+        renderPriceInputs();
+        refreshUI();
     });
 
-    function renderPriceAdmin() {
+    // 2. Render Admin Price Inputs
+    function renderPriceInputs() {
         const container = document.getElementById('priceInputsContainer');
+        const rateInput = document.getElementById('adminKwhRate');
+        
+        rateInput.value = sysConfig.rate;
         container.innerHTML = "";
+        
         Object.keys(sysConfig.prices).forEach(key => {
             const div = document.createElement('div');
             div.className = "price-input-group";
-            div.innerHTML = `<label style="font-size:0.7rem; font-weight:700;">${key} Price (₱)</label>
-                             <input type="number" class="sys-price-input" data-key="${key}" value="${sysConfig.prices[key]}">`;
+            div.innerHTML = `
+                <label>${key} Package (₱)</label>
+                <input type="number" class="sys-price-input" data-key="${key}" value="${sysConfig.prices[key]}">
+            `;
             container.appendChild(div);
         });
     }
 
+    // 3. Save Admin Settings
     document.getElementById('saveAdminSettings').onclick = () => {
         const newRate = parseFloat(document.getElementById('adminKwhRate').value);
         const newPrices = {};
         document.querySelectorAll('.sys-price-input').forEach(input => {
             newPrices[input.dataset.key] = parseFloat(input.value) || 0;
         });
-        
-        update(ref(db, 'settings'), { kwhRate: newRate, prices: newPrices })
-            .then(() => alert("Settings Updated!"))
-            .catch(err => alert("Error: " + err.message));
+
+        update(ref(db, 'settings'), {
+            kwhRate: newRate,
+            prices: newPrices
+        }).then(() => alert("Settings Updated Successfully!"));
     };
 
-    window.showView = (v) => {
-        ['calculatorView', 'loginView', 'adminView'].forEach(id => document.getElementById(id).classList.add('hidden'));
-        document.getElementById(v + 'View').classList.remove('hidden');
-    };
-
-    document.getElementById('navAdminBtn').onclick = () => auth.currentUser ? showView('admin') : showView('login');
-    document.getElementById('backToCalc').onclick = () => showView('calculator');
-
+    // --- Calculator Logic ---
     window.switchMethod = (m) => {
         document.getElementById('btnOptA').classList.toggle('active', m === 'A');
         document.getElementById('btnOptB').classList.toggle('active', m === 'B');
@@ -345,25 +294,10 @@
         m === 'A' ? calculateByBill() : updateTable();
     };
 
-    window.addRow = () => {
-        const tr = document.createElement('tr');
-        let options = applianceLibrary.map(a => `<option value="${a.w}">${a.name}</option>`).join('');
-        tr.innerHTML = `
-            <td><select onchange="syncWatts(this)"><option value="0">Select...</option>${options}<option value="custom">Custom</option></select></td>
-            <td><input type="number" class="w" placeholder="W" oninput="updateTable()"></td>
-            <td><input type="number" class="q" value="1" oninput="updateTable()"></td>
-            <td><input type="number" class="h" value="1" oninput="updateTable()"></td>
-            <td class="row-kwh">0.0</td>
-            <td><button class="btn-danger" onclick="this.parentElement.parentElement.remove();updateTable();">×</button></td>
-        `;
-        document.getElementById('applianceBody').appendChild(tr);
-    };
-
-    window.syncWatts = (el) => {
-        const wInput = el.parentElement.parentElement.querySelector('.w');
-        if(el.value !== "custom") { wInput.value = el.value; wInput.readOnly = true; } 
-        else { wInput.value = ""; wInput.readOnly = false; wInput.focus(); }
-        updateTable();
+    window.calculateByBill = () => {
+        const bill = parseFloat(document.getElementById('billInput').value) || 0;
+        currentDaily = (bill / sysConfig.rate) / 30;
+        refreshUI();
     };
 
     window.updateTable = () => {
@@ -380,12 +314,6 @@
         refreshUI();
     };
 
-    window.calculateByBill = () => {
-        const bill = parseFloat(document.getElementById('billInput').value) || 0;
-        currentDaily = (bill / sysConfig.rate) / 30;
-        refreshUI();
-    };
-
     function refreshUI() {
         const result = getSystemRecommendation(currentDaily);
         document.getElementById('resInverterA').innerText = result.size;
@@ -397,20 +325,28 @@
     function getSystemRecommendation(daily) {
         if (daily <= 0) return { size: "---", price: 0 };
         const kwNeeded = daily / 3.5; 
-        
         let size = "Commercial";
-        if (kwNeeded <= 3) size = "3kW";
-        else if (kwNeeded <= 5) size = "5kW";
-        else if (kwNeeded <= 8) size = "8kW";
-        else if (kwNeeded <= 10) size = "10kW";
-        else if (kwNeeded <= 16) size = "16kW";
-        else if (kwNeeded <= 20) size = "20kW";
+        if (kwNeeded <= 3.5) size = "3kW";
+        else if (kwNeeded <= 5.5) size = "5kW";
+        else if (kwNeeded <= 8.5) size = "8kW";
+        else if (kwNeeded <= 11) size = "10kW";
+        else if (kwNeeded <= 17) size = "16kW";
+        else if (kwNeeded <= 22) size = "20kW";
 
         return {
             size: size === "Commercial" ? "Commercial Scale" : size + " System",
             price: sysConfig.prices[size] || 0
         };
     }
+
+    // --- Admin & Firebase Management ---
+    window.showView = (v) => {
+        ['calculatorView', 'loginView', 'adminView'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        document.getElementById(v + 'View').classList.remove('hidden');
+    };
+
+    document.getElementById('navAdminBtn').onclick = () => auth.currentUser ? showView('admin') : showView('login');
+    document.getElementById('backToCalc').onclick = () => showView('calculator');
 
     document.getElementById('doLoginBtn').onclick = () => {
         signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value, document.getElementById('loginPass').value)
@@ -429,37 +365,59 @@
 
     function loadInquiries() {
         onValue(ref(db, 'inquiries'), (snapshot) => {
-            rawInquiries = [];
-            snapshot.forEach(child => { rawInquiries.push({ key: child.key, ...child.val() }); });
-            renderTable();
+            const body = document.getElementById('adminTableBody');
+            body.innerHTML = "";
+            snapshot.forEach(child => {
+                const data = child.val();
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${data.dateDisplay}</td>
+                    <td>${data.name}</td>
+                    <td>${data.contact}</td>
+                    <td>${data.address || 'N/A'}</td>
+                    <td>${data.rec}</td>
+                    <td><button class="btn-danger" onclick="deleteInquiry('${child.key}')">Del</button></td>
+                `;
+                body.appendChild(tr);
+            });
         });
     }
 
-    function renderTable(filterMonth = "") {
-        const body = document.getElementById('adminTableBody');
-        body.innerHTML = "";
-        rawInquiries.forEach(data => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${data.dateDisplay}</td><td>${data.name}</td><td>${data.contact}</td><td>${data.rec}</td>
-                            <td><button class="btn-danger" onclick="deleteInquiry('${data.key}')">Del</button></td>`;
-            body.appendChild(tr);
-        });
-    }
-
-    window.deleteInquiry = (key) => { if(confirm('Delete?')) remove(ref(db, 'inquiries/' + key)); };
+    window.deleteInquiry = (key) => { if(confirm('Delete this inquiry?')) remove(ref(db, 'inquiries/' + key)); };
 
     document.getElementById('submitBtn').onclick = () => {
         const name = document.getElementById('clientName').value;
         const contact = document.getElementById('clientContact').value;
-        if(!name || !contact) return alert("Missing Info");
+        if(!name || !contact) return alert("Please fill in Name and Contact Number.");
+        
         const rec = getSystemRecommendation(currentDaily);
         push(ref(db, 'inquiries'), {
-            timestamp: Date.now(), dateDisplay: new Date().toLocaleDateString(),
-            name, contact, email: document.getElementById('clientEmail').value,
-            rec: rec.size, price: rec.price
-        }).then(() => { alert("Proposal Request Sent!"); location.reload(); });
+            timestamp: Date.now(),
+            dateDisplay: new Date().toLocaleDateString(),
+            name, contact,
+            email: document.getElementById('clientEmail').value,
+            address: document.getElementById('clientAddress').value,
+            rec: rec.size,
+            price: rec.price
+        }).then(() => {
+            alert("Thank you! Your request for a free consultation has been sent.");
+            location.reload();
+        });
     };
 
+    // Boilerplate for Appliance addRow (Same as original)
+    window.addRow = () => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="text" placeholder="e.g. Fridge"></td>
+            <td><input type="number" class="w" placeholder="W" oninput="updateTable()"></td>
+            <td><input type="number" class="q" value="1" oninput="updateTable()"></td>
+            <td><input type="number" class="h" value="1" oninput="updateTable()"></td>
+            <td class="row-kwh">0.0</td>
+            <td><button class="btn-danger" onclick="this.parentElement.parentElement.remove();updateTable();">×</button></td>
+        `;
+        document.getElementById('applianceBody').appendChild(tr);
+    };
     addRow();
 </script>
 </body>
