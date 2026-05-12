@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Updated Viewport: Added user-scalable=no to prevent accidental zooming on input focus -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Enterprise Solar Calculator | NetZero PH</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -21,7 +22,24 @@
         }
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--ui-bg); color: var(--text-dark); line-height: 1.5; -webkit-tap-highlight-color: transparent; display: flex; flex-direction: column; min-height: 100vh; }
+        
+        /* Added text-size-adjust to prevent mobile browsers from auto-zooming text */
+        html {
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: var(--ui-bg); 
+            color: var(--text-dark); 
+            line-height: 1.5; 
+            -webkit-tap-highlight-color: transparent; 
+            display: flex; 
+            flex-direction: column; 
+            min-height: 100vh; 
+            overflow-x: hidden; /* Prevents horizontal shaking */
+        }
         
         header { background: var(--ui-card-bg); border-bottom: 1px solid var(--ui-border); padding: 1rem 0; position: sticky; top: 0; z-index: 1000; width: 100%; height: 70px; }
         .header-container { max-width: 1200px; margin: 0 auto; padding: 0 1rem; display: flex; align-items: center; justify-content: space-between; }
@@ -70,7 +88,7 @@
         th { background: #f8fafc; padding: 1rem; font-size: 0.75rem; color: var(--text-muted); border-bottom: 1px solid var(--ui-border); text-transform: uppercase; text-align: left; }
         td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--ui-border); font-size: 0.9rem; vertical-align: middle; }
         
-        input, select { padding: 0.85rem; border: 1px solid var(--ui-border); border-radius: 8px; background: #fff; font-family: inherit; font-size: 0.95rem; width: 100%; }
+        input, select { padding: 0.85rem; border: 1px solid var(--ui-border); border-radius: 8px; background: #fff; font-family: inherit; font-size: 16px; /* 16px prevents iOS zoom on focus */ width: 100%; }
         .w, .q, .h { min-width: 80px; }
 
         .btn { padding: 0.75rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; text-align: center; font-size: 0.9rem; }
@@ -446,7 +464,6 @@
             snapshot.forEach(child => {
                 const data = child.val();
                 const tr = document.createElement('tr');
-                // PINAKAMAHALAGA: Dito ibinalik ang "data.dateDisplay" cell
                 tr.innerHTML = `
                     <td>${data.dateDisplay || 'N/A'}</td>
                     <td>${data.name}</td>
@@ -474,7 +491,7 @@
         const rec = getSystemRecommendation(currentDaily);
         push(ref(db, 'inquiries'), {
             timestamp: Date.now(), 
-            dateDisplay: new Date().toLocaleDateString(), // Sine-save ang date rito
+            dateDisplay: new Date().toLocaleDateString(),
             name, contact, email: document.getElementById('clientEmail').value,
             address: document.getElementById('clientAddress').value,
             rec: rec.size, price: rec.price
