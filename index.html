@@ -74,7 +74,6 @@
         .method-btn { flex: 1; padding: 0.75rem; border: 2px solid var(--ui-border); border-radius: 10px; background: white; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
         .method-btn.active { border-color: var(--brand-primary); background: var(--brand-primary); color: white; }
 
-        /* Responsive Table Magic */
         .table-area { padding: 0; }
         table { width: 100%; border-collapse: collapse; }
         th { background: #f8fafc; padding: 1rem; font-size: 0.75rem; color: var(--text-muted); border-bottom: 1px solid var(--ui-border); text-transform: uppercase; text-align: left; }
@@ -110,6 +109,14 @@
         .client-info-grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 1.5rem; }
         .hidden { display: none !important; }
 
+        .filter-bar { background: #f8fafc; padding: 1rem 1.5rem; border-bottom: 1px solid var(--ui-border); display: flex; align-items: center; gap: 10px; }
+        .filter-bar label { font-size: 0.75rem; font-weight: 700; color: var(--text-muted); }
+        .filter-bar input[type="month"] { width: auto; padding: 0.5rem; font-size: 0.85rem; }
+
+        .type-selector { display: flex; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 4px; margin-bottom: 15px; }
+        .type-btn { flex: 1; border: none; background: transparent; color: white; padding: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; border-radius: 6px; transition: 0.2s; }
+        .type-btn.selected { background: var(--brand-accent); color: var(--brand-primary); }
+
         @media (max-width: 768px) {
             .sidebar { position: fixed; left: 0; transform: translateX(-100%); }
             .sidebar.mobile-open { transform: translateX(0); }
@@ -121,6 +128,11 @@
             .results-container { grid-template-columns: 1fr 1fr; }
             .client-info-grid { grid-template-columns: 1fr 1fr; }
         }
+
+        /* Pricing Admin Specific Styles */
+        .pricing-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; padding: 1.5rem; align-items: end; }
+        .pricing-header { font-size: 0.7rem; font-weight: 800; color: var(--brand-primary); text-transform: uppercase; margin-bottom: 5px; }
+        @media (max-width: 600px) { .pricing-grid { grid-template-columns: 1fr; } }
     </style>
 </head>
 <body>
@@ -194,6 +206,10 @@
                         </div>
                     </div>
                     <div class="result-block financial-block">
+                        <div class="type-selector">
+                            <button class="type-btn selected" id="typeGrid" onclick="setSystemType('Grid-Tie')">GRID-TIE</button>
+                            <button class="type-btn" id="typeHybrid" onclick="setSystemType('Hybrid')">HYBRID</button>
+                        </div>
                         <div class="stat-grid">
                             <div class="stat-group"><label>Recommended System</label><span id="resInverterA" class="highlight-text">---</span></div>
                             <div class="stat-group"><label>Est. Package Price</label><span id="resSystemPrice" class="highlight-text">₱0.00</span></div>
@@ -232,22 +248,40 @@
             <div id="adminSectionInquiries">
                 <div class="dashboard-card">
                     <div class="card-header"><h2>Client Inquiries</h2></div>
+                    <div class="filter-bar">
+                        <label>SORT BY MONTH:</label>
+                        <input type="month" id="monthFilter" onchange="loadInquiries()">
+                    </div>
                     <div class="table-area">
                         <table>
+                            <thead>
+                                <tr>
+                                    <th>Client Info</th>
+                                    <th>System</th>
+                                    <th>Date</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
                             <tbody id="adminTableBody"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
+
             <div id="adminSectionPricing" class="hidden">
                 <div class="dashboard-card">
                     <div class="card-header"><h2>System Pricing</h2></div>
-                    <div style="padding: 1.5rem;">
-                        <label>Global Rate (₱/kWh):</label>
-                        <input type="number" id="adminKwhRate" step="0.01">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid var(--ui-border);">
+                        <label style="font-weight: 700; font-size: 0.8rem; display: block; margin-bottom: 5px;">GLOBAL RATE (₱/kWh):</label>
+                        <input type="number" id="adminKwhRate" step="0.01" style="max-width: 200px;">
                     </div>
-                    <div id="priceInputsContainer" class="client-info-grid"></div>
-                    <div style="padding: 1.5rem;"><button class="btn btn-primary" id="saveAdminSettings">Save All</button></div>
+                    <div class="pricing-grid" id="pricingHeaderRow" style="background: #f1f5f9; padding: 0.5rem 1.5rem; border-bottom: 1px solid var(--ui-border);">
+                        <div class="pricing-header">System Size</div>
+                        <div class="pricing-header">Grid-Tie Price (₱)</div>
+                        <div class="pricing-header">Hybrid Price (₱)</div>
+                    </div>
+                    <div id="priceInputsContainer"></div>
+                    <div style="padding: 1.5rem;"><button class="btn btn-primary" id="saveAdminSettings" style="width: 100%;">Save Pricing Changes</button></div>
                 </div>
             </div>
         </div>
@@ -271,71 +305,26 @@
     const auth = getAuth(app);
 
     const APPLIANCE_LIBRARY = {
-        "Custom": 0,
-        "-- COOLING --": 0,
-        "Aircon (0.5 HP)": 500,
-        "Aircon (1.0 HP)": 900,
-        "Aircon (1.5 HP)": 1300,
-        "Aircon (2.0 HP)": 1800,
-        "Aircon (2.5 HP)": 2300,
-        "Electric Fan (Desk)": 50,
-        "Electric Fan (Stand)": 65,
-        "Air Cooler": 120,
-        "Exhaust Fan": 40,
-        "-- KITCHEN --": 0,
-        "Refrigerator (Personal)": 80,
-        "Refrigerator (1-Door)": 150,
-        "Refrigerator (2-Door)": 250,
-        "Chest Freezer": 200,
-        "Microwave Oven": 1200,
-        "Electric Kettle": 1500,
-        "Rice Cooker (Small)": 400,
-        "Rice Cooker (Large)": 800,
-        "Induction Cooker": 2000,
-        "Air Fryer": 1400,
-        "Coffee Maker": 800,
-        "Blender": 300,
-        "Oven Toaster": 1000,
-        "-- ENTERTAINMENT --": 0,
-        "LED TV (32 inch)": 50,
-        "LED TV (43 inch)": 80,
-        "LED TV (55 inch)": 120,
-        "LED TV (65 inch)": 180,
-        "Sound System / Speakers": 100,
-        "Gaming Console (PS5/Xbox)": 200,
-        "-- LAUNDRY & CLEANING --": 0,
-        "Washing Machine (Single)": 350,
-        "Washing Machine (Fully Auto)": 500,
-        "Spin Dryer": 250,
-        "Clothes Dryer": 2500,
-        "Flat Iron": 1100,
-        "Vacuum Cleaner": 1200,
-        "-- OFFICE & GADGETS --": 0,
-        "Laptop": 65,
-        "Desktop PC (Office)": 150,
-        "Desktop PC (Gaming)": 400,
-        "Computer Monitor": 40,
-        "Wi-Fi Router": 15,
-        "CCTV System (4-CH)": 50,
-        "Phone Charger": 10,
-        "-- LIGHTING & WATER --": 0,
-        "LED Bulb (5W)": 5,
-        "LED Bulb (9W)": 9,
-        "LED Bulb (13W)": 13,
-        "Fluorescent Tube": 40,
-        "Water Pump (0.5 HP)": 375,
-        "Water Pump (1.0 HP)": 750,
-        "Electric Shower Heater": 3500
+        "Custom": 0, "-- COOLING --": 0, "Aircon (0.5 HP)": 500, "Aircon (1.0 HP)": 900, "Aircon (1.5 HP)": 1300, "Aircon (2.0 HP)": 1800, "Aircon (2.5 HP)": 2300, "Electric Fan (Desk)": 50, "Electric Fan (Stand)": 65, "Air Cooler": 120, "Exhaust Fan": 40, "-- KITCHEN --": 0, "Refrigerator (Personal)": 80, "Refrigerator (1-Door)": 150, "Refrigerator (2-Door)": 250, "Chest Freezer": 200, "Microwave Oven": 1200, "Electric Kettle": 1500, "Rice Cooker (Small)": 400, "Rice Cooker (Large)": 800, "Induction Cooker": 2000, "Air Fryer": 1400, "Coffee Maker": 800, "Blender": 300, "Oven Toaster": 1000, "-- ENTERTAINMENT --": 0, "LED TV (32 inch)": 50, "LED TV (43 inch)": 80, "LED TV (55 inch)": 120, "LED TV (65 inch)": 180, "Sound System / Speakers": 100, "Gaming Console (PS5/Xbox)": 200, "-- LAUNDRY & CLEANING --": 0, "Washing Machine (Single)": 350, "Washing Machine (Fully Auto)": 500, "Spin Dryer": 250, "Clothes Dryer": 2500, "Flat Iron": 1100, "Vacuum Cleaner": 1200, "-- OFFICE & GADGETS --": 0, "Laptop": 65, "Desktop PC (Office)": 150, "Desktop PC (Gaming)": 400, "Computer Monitor": 40, "Wi-Fi Router": 15, "CCTV System (4-CH)": 50, "Phone Charger": 10, "-- LIGHTING & WATER --": 0, "LED Bulb (5W)": 5, "LED Bulb (9W)": 9, "LED Bulb (13W)": 13, "Fluorescent Tube": 40, "Water Pump (0.5 HP)": 375, "Water Pump (1.0 HP)": 750, "Electric Shower Heater": 3500
     };
 
-    let sysConfig = { rate: 12.00, prices: { "3kW": 165000, "5kW": 275000, "8kW": 395000, "10kW": 485000, "16kW": 720000, "20kW": 890000 } };
+    // Updated sysConfig with both types
+    let sysConfig = { 
+        rate: 12.00, 
+        gridPrices: { "3kW": 165000, "5kW": 275000, "8kW": 395000, "10kW": 485000, "16kW": 720000, "20kW": 890000 },
+        hybridPrices: { "3kW": 222750, "5kW": 371250, "8kW": 533250, "10kW": 654750, "16kW": 972000, "20kW": 1201500 }
+    };
+    
     let currentDaily = 0;
+    let selectedType = 'Grid-Tie';
 
     onValue(ref(db, 'settings'), (snapshot) => {
         if(snapshot.exists()){
             const data = snapshot.val();
             if(data.kwhRate) sysConfig.rate = parseFloat(data.kwhRate);
-            if(data.prices) sysConfig.prices = data.prices;
+            if(data.gridPrices) sysConfig.gridPrices = data.gridPrices;
+            if(data.hybridPrices) sysConfig.hybridPrices = data.hybridPrices;
+            document.getElementById('adminKwhRate').value = sysConfig.rate;
         }
         renderPriceInputs();
         refreshUI();
@@ -345,17 +334,31 @@
         const container = document.getElementById('priceInputsContainer');
         if(!container) return;
         container.innerHTML = "";
-        Object.keys(sysConfig.prices).forEach(key => {
-            const div = document.createElement('div');
-            div.innerHTML = `<label style="font-size:0.7rem; font-weight:700;">${key} (₱)</label><input type="number" class="sys-price-input" data-key="${key}" value="${sysConfig.prices[key]}">`;
-            container.appendChild(div);
+        
+        Object.keys(sysConfig.gridPrices).forEach(key => {
+            const row = document.createElement('div');
+            row.className = "pricing-grid";
+            row.style.borderBottom = "1px solid var(--ui-border)";
+            row.innerHTML = `
+                <div style="font-weight:700; font-size:0.9rem;">${key}</div>
+                <div><input type="number" class="grid-price-input" data-key="${key}" value="${sysConfig.gridPrices[key]}"></div>
+                <div><input type="number" class="hybrid-price-input" data-key="${key}" value="${sysConfig.hybridPrices[key] || 0}"></div>
+            `;
+            container.appendChild(row);
         });
     }
 
     document.getElementById('saveAdminSettings').onclick = () => {
-        const newPrices = {};
-        document.querySelectorAll('.sys-price-input').forEach(i => newPrices[i.dataset.key] = parseFloat(i.value));
-        update(ref(db, 'settings'), { kwhRate: parseFloat(document.getElementById('adminKwhRate').value), prices: newPrices }).then(() => alert("Saved!"));
+        const newGrid = {};
+        const newHybrid = {};
+        document.querySelectorAll('.grid-price-input').forEach(i => newGrid[i.dataset.key] = parseFloat(i.value));
+        document.querySelectorAll('.hybrid-price-input').forEach(i => newHybrid[i.dataset.key] = parseFloat(i.value));
+        
+        update(ref(db, 'settings'), { 
+            kwhRate: parseFloat(document.getElementById('adminKwhRate').value), 
+            gridPrices: newGrid,
+            hybridPrices: newHybrid 
+        }).then(() => alert("Pricing Updated Successfully!"));
     };
 
     window.switchMethod = (m) => {
@@ -386,6 +389,13 @@
         refreshUI();
     };
 
+    window.setSystemType = (type) => {
+        selectedType = type;
+        document.getElementById('typeGrid').classList.toggle('selected', type === 'Grid-Tie');
+        document.getElementById('typeHybrid').classList.toggle('selected', type === 'Hybrid');
+        refreshUI();
+    };
+
     function refreshUI() {
         const res = getSystemRecommendation(currentDaily);
         document.getElementById('resInverterA').innerText = res.size;
@@ -403,7 +413,12 @@
         else if (kw > 8.5 && kw <= 11) s = "10kW";
         else if (kw > 11 && kw <= 17) s = "16kW";
         else if (kw > 17) s = "20kW";
-        return { size: s + " System", price: sysConfig.prices[s] || 0 };
+        
+        // Uses explicit price based on type
+        let priceMap = selectedType === 'Hybrid' ? sysConfig.hybridPrices : sysConfig.gridPrices;
+        let finalPrice = priceMap[s] || 0;
+
+        return { size: s + " " + selectedType, price: Math.round(finalPrice) };
     }
 
     window.showView = (v) => {
@@ -446,33 +461,50 @@
 
     onAuthStateChanged(auth, user => { if (user) loadInquiries(); });
 
-    function loadInquiries() {
+    window.loadInquiries = () => {
+        const filterVal = document.getElementById('monthFilter').value;
         onValue(ref(db, 'inquiries'), (snapshot) => {
             const body = document.getElementById('adminTableBody');
             if(!body) return;
             body.innerHTML = "";
-            snapshot.forEach(child => {
-                const data = child.val();
+            let inquiriesArray = [];
+            snapshot.forEach(child => { inquiriesArray.push({ key: child.key, ...child.val() }); });
+            inquiriesArray.sort((a, b) => b.timestamp - a.timestamp);
+
+            inquiriesArray.forEach(data => {
+                const dateObj = new Date(data.timestamp);
+                const monthYear = dateObj.toISOString().slice(0, 7);
+                const displayDate = dateObj.toLocaleDateString('en-GB');
+                if (filterVal && monthYear !== filterVal) return;
+
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td style="font-size:0.7rem">${data.name}<br>${data.contact}</td><td>${data.rec}</td><td><button class="btn-danger" onclick="deleteInquiry('${child.key}')">X</button></td>`;
+                tr.innerHTML = `
+                    <td data-label="Client Info" style="font-size:0.75rem">
+                        <strong>${data.name}</strong><br>${data.contact}<br>
+                        <span style="color:var(--text-muted)">${data.address || ''}</span>
+                    </td>
+                    <td data-label="System">${data.rec}</td>
+                    <td data-label="Date" style="font-size:0.7rem; color:var(--text-muted)">${displayDate}</td>
+                    <td><button class="btn-danger" onclick="deleteInquiry('${data.key}')">×</button></td>
+                `;
                 body.appendChild(tr);
             });
         });
-    }
+    };
 
-    window.deleteInquiry = (k) => { if(confirm('Delete?')) remove(ref(db, 'inquiries/' + k)); };
+    window.deleteInquiry = (k) => { if(confirm('Delete this inquiry?')) remove(ref(db, 'inquiries/' + k)); };
 
     document.getElementById('submitBtn').onclick = () => {
         const name = document.getElementById('clientName').value;
         const contact = document.getElementById('clientContact').value;
-        if(!name || !contact) return alert("Missing info");
+        if(!name || !contact) return alert("Please provide Name and Contact number.");
         const rec = getSystemRecommendation(currentDaily);
         push(ref(db, 'inquiries'), {
-            timestamp: Date.now(), 
-            name, contact, email: document.getElementById('clientEmail').value,
+            timestamp: Date.now(), name, contact, 
+            email: document.getElementById('clientEmail').value,
             address: document.getElementById('clientAddress').value,
             rec: rec.size, price: rec.price
-        }).then(() => { alert("Sent!"); location.reload(); });
+        }).then(() => { alert("Your inquiry has been sent!"); location.reload(); });
     };
 
     window.addRow = () => {
@@ -493,6 +525,7 @@
         `;
         document.getElementById('applianceBody').appendChild(tr);
     };
+
     addRow();
 </script>
 </body>
