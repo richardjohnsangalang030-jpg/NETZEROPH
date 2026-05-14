@@ -74,12 +74,22 @@
         .method-btn { flex: 1; padding: 0.75rem; border: 2px solid var(--ui-border); border-radius: 10px; background: white; cursor: pointer; font-weight: 600; font-size: 0.85rem; transition: 0.2s; }
         .method-btn.active { border-color: var(--brand-primary); background: var(--brand-primary); color: white; }
 
-        .table-area { padding: 0; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; min-width: 600px; }
+        /* Responsive Table Magic */
+        .table-area { padding: 0; }
+        table { width: 100%; border-collapse: collapse; }
         th { background: #f8fafc; padding: 1rem; font-size: 0.75rem; color: var(--text-muted); border-bottom: 1px solid var(--ui-border); text-transform: uppercase; text-align: left; }
         td { padding: 0.75rem 1rem; border-bottom: 1px solid var(--ui-border); font-size: 0.9rem; vertical-align: middle; }
         
-        input, select { padding: 0.85rem; border: 1px solid var(--ui-border); border-radius: 8px; background: #fff; font-family: inherit; font-size: 16px; width: 100%; }
+        input, select { padding: 0.8rem; border: 1px solid var(--ui-border); border-radius: 8px; background: #fff; font-family: inherit; font-size: 16px; width: 100%; }
+
+        @media (max-width: 600px) {
+            thead { display: none; }
+            tr { display: flex; flex-direction: column; padding: 1rem; border-bottom: 4px solid var(--ui-bg); position: relative; }
+            td { display: flex; justify-content: space-between; align-items: center; padding: 0.4rem 0; border: none; }
+            td::before { content: attr(data-label); font-weight: 700; font-size: 0.75rem; color: var(--text-muted); }
+            .btn-danger-row { position: absolute; top: 10px; right: 10px; }
+            .row-kwh { font-weight: 800; color: var(--brand-primary); }
+        }
 
         .btn { padding: 0.75rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; border: 1px solid transparent; text-align: center; font-size: 0.9rem; }
         .btn-primary { background: var(--brand-primary); color: white; }
@@ -87,25 +97,6 @@
         .btn-success { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; border-radius: 6px; padding: 8px 12px; font-size: 0.85rem; border:none; }
         
-        /* Calendar Styles */
-        .calendar-container { padding: 1.5rem; background: #fff; border-bottom: 1px solid var(--ui-border); }
-        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 10px; }
-        .calendar-day-head { text-align: center; font-size: 0.7rem; font-weight: 800; color: var(--text-muted); padding-bottom: 5px; }
-        .calendar-day { 
-            aspect-ratio: 1/1; border: 1px solid var(--ui-border); border-radius: 8px; 
-            display: flex; flex-direction: column; align-items: center; justify-content: center; 
-            font-size: 0.8rem; cursor: pointer; transition: 0.2s; position: relative;
-        }
-        .calendar-day:hover { background: #f1f5f9; }
-        .calendar-day.has-inquiry { border-color: var(--brand-accent); background: #f0fdf4; }
-        .calendar-day.active-filter { background: var(--brand-primary) !important; color: white; }
-        .inquiry-count { 
-            position: absolute; bottom: 2px; right: 2px; background: var(--brand-accent); 
-            color: var(--brand-primary); font-size: 0.6rem; font-weight: 800; 
-            padding: 1px 4px; border-radius: 4px; 
-        }
-        .calendar-controls { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-
         .results-container { display: grid; grid-template-columns: 1fr; }
         .result-block { padding: 1.5rem; }
         .usage-block { background: #f1f5f9; color: var(--text-dark); }
@@ -119,13 +110,11 @@
         .client-info-grid { display: grid; grid-template-columns: 1fr; gap: 12px; padding: 1.5rem; }
         .hidden { display: none !important; }
 
-        .price-settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; padding: 1.5rem; background: #f8fafc; border-radius: 12px; margin: 1rem; border: 1px solid var(--ui-border); }
-
         @media (max-width: 768px) {
             .sidebar { position: fixed; left: 0; transform: translateX(-100%); }
             .sidebar.mobile-open { transform: translateX(0); }
-            .admin-wrapper { flex-direction: column; }
             .results-container { grid-template-columns: 1fr; }
+            .header-container { flex-wrap: wrap; height: auto; padding: 0.5rem 1rem; }
         }
         
         @media (min-width: 768px) {
@@ -145,20 +134,18 @@
             </div>
         </div>
         <div class="nav-tabs" style="display: flex; gap: 5px;">
-            <button class="btn btn-outline" id="menuToggle" style="display: none;">Menu</button>
-            <button class="btn btn-outline" id="navAdminBtn">Admin Panel</button>
+            <button class="btn btn-outline" id="menuToggle">Menu</button>
+            <button class="btn btn-outline" id="navAdminBtn">Admin</button>
         </div>
     </div>
 </header>
 
 <div id="ui-wrapper" class="admin-wrapper">
-    
     <nav id="adminSidebar" class="sidebar hidden">
         <div style="display: flex; flex-direction: column; gap: 0.5rem;">
             <button class="sidebar-link active" onclick="switchAdminTab('inquiries', this)">Client Inquiries</button>
             <button class="sidebar-link" onclick="switchAdminTab('pricing', this)">Pricing Settings</button>
         </div>
-        
         <div class="sidebar-footer">
             <button class="sidebar-link" onclick="exitAdmin()">← Back to Calculator</button>
             <button class="sidebar-link btn-sidebar-logout" id="logoutBtnSidebar">Logout</button>
@@ -166,7 +153,6 @@
     </nav>
 
     <main class="main-content" id="mainArea">
-        
         <div id="calculatorView">
             <div class="dashboard-card">
                 <div class="card-header"><h2>1. Energy Estimation</h2></div>
@@ -188,12 +174,12 @@
                     <table>
                         <thead>
                             <tr>
-                                <th>Select Appliance</th>
-                                <th style="width: 100px;">Watts</th>
-                                <th style="width: 80px;">Qty</th>
-                                <th style="width: 80px;">Hrs/Day</th>
-                                <th style="width: 90px;">kWh</th>
-                                <th style="width: 50px;"></th>
+                                <th>Appliance</th>
+                                <th>Watts</th>
+                                <th>Qty</th>
+                                <th>Hrs/Day</th>
+                                <th>kWh</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody id="applianceBody"></tbody>
@@ -220,7 +206,7 @@
                 <div class="card-header"><h2>2. Get Your Proposal</h2></div>
                 <div class="client-info-grid">
                     <input type="text" id="clientName" placeholder="Full Name">
-                    <input type="tel" id="clientContact" placeholder="09771638925 (Contact Number)" maxlength="11">
+                    <input type="tel" id="clientContact" placeholder="Contact (e.g. 09771638925)" maxlength="11">
                     <input type="email" id="clientEmail" placeholder="Email Address">
                     <input type="text" id="clientAddress" placeholder="Location (City/Province)">
                 </div>
@@ -238,52 +224,30 @@
                 <input type="email" id="loginEmail" placeholder="Email" style="margin-bottom: 1rem;">
                 <input type="password" id="loginPass" placeholder="Password" style="margin-bottom: 1.5rem;">
                 <button class="btn btn-primary" id="doLoginBtn" style="width: 100%;">Login</button>
-                <button class="btn btn-outline" id="backToCalc" style="width: 100%; margin-top: 10px; border:none;">Back to Calculator</button>
+                <button class="btn btn-outline" id="backToCalc" style="width: 100%; margin-top: 10px; border:none;">Back</button>
             </div>
         </div>
 
         <div id="adminView" class="hidden">
             <div id="adminSectionInquiries">
                 <div class="dashboard-card">
-                    <div class="card-header">
-                        <h2>Client Inquiries</h2>
-                        <button class="btn btn-outline" id="toggleCalendarBtn">Show Calendar</button>
-                    </div>
-                    
-                    <div id="calendarWrapper" class="calendar-container hidden">
-                        <div class="calendar-controls">
-                            <button class="btn btn-outline" onclick="changeMonth(-1)">❮</button>
-                            <h3 id="calendarMonthYear" style="font-size: 0.9rem;">Month Year</h3>
-                            <button class="btn btn-outline" onclick="changeMonth(1)">❯</button>
-                        </div>
-                        <div class="calendar-grid" id="calendarGrid">
-                            <!-- JS populated -->
-                        </div>
-                        <div style="margin-top: 10px; text-align: center;">
-                            <button class="btn btn-outline" onclick="clearDateFilter()" style="font-size: 0.7rem;">Clear Filter / Show All</button>
-                        </div>
-                    </div>
-
+                    <div class="card-header"><h2>Client Inquiries</h2></div>
                     <div class="table-area">
                         <table>
-                            <thead>
-                                <tr><th>Date</th><th>Client</th><th>Contact</th><th>Location</th><th>Rec</th><th>Action</th></tr>
-                            </thead>
                             <tbody id="adminTableBody"></tbody>
                         </table>
                     </div>
                 </div>
             </div>
-            
             <div id="adminSectionPricing" class="hidden">
                 <div class="dashboard-card">
-                    <div class="card-header"><h2>System Pricing & Settings</h2></div>
+                    <div class="card-header"><h2>System Pricing</h2></div>
                     <div style="padding: 1.5rem;">
-                        <label style="font-weight: 700; font-size: 0.85rem;">Global Electricity Rate (₱/kWh):</label>
-                        <input type="number" id="adminKwhRate" step="0.01" style="width: 150px;">
+                        <label>Global Rate (₱/kWh):</label>
+                        <input type="number" id="adminKwhRate" step="0.01">
                     </div>
-                    <div class="price-settings-grid" id="priceInputsContainer"></div>
-                    <div style="padding: 1.5rem;"><button class="btn btn-primary" id="saveAdminSettings">Save All Changes</button></div>
+                    <div id="priceInputsContainer" class="client-info-grid"></div>
+                    <div style="padding: 1.5rem;"><button class="btn btn-primary" id="saveAdminSettings">Save All</button></div>
                 </div>
             </div>
         </div>
@@ -309,30 +273,63 @@
     const APPLIANCE_LIBRARY = {
         "Custom": 0,
         "-- COOLING --": 0,
-        "Aircon (1.0 HP)": 900, "Aircon (1.5 HP)": 1300, "Aircon (2.0 HP)": 1800,
-        "Electric Fan (Stand)": 60, "Electric Fan (Ceiling)": 75, "Air Cooler": 120,
+        "Aircon (0.5 HP)": 500,
+        "Aircon (1.0 HP)": 900,
+        "Aircon (1.5 HP)": 1300,
+        "Aircon (2.0 HP)": 1800,
+        "Aircon (2.5 HP)": 2300,
+        "Electric Fan (Desk)": 50,
+        "Electric Fan (Stand)": 65,
+        "Air Cooler": 120,
+        "Exhaust Fan": 40,
         "-- KITCHEN --": 0,
-        "Refrigerator (Small)": 150, "Refrigerator (Inverter Large)": 200, "Freezer (Chest)": 300,
-        "Microwave Oven": 1200, "Electric Kettle": 1500, "Rice Cooker (Small)": 400, "Rice Cooker (Large)": 800,
-        "Induction Cooker": 2000, "Air Fryer": 1400, "Coffee Maker": 800, "Blender": 350, "Water Dispenser": 500,
+        "Refrigerator (Personal)": 80,
+        "Refrigerator (1-Door)": 150,
+        "Refrigerator (2-Door)": 250,
+        "Chest Freezer": 200,
+        "Microwave Oven": 1200,
+        "Electric Kettle": 1500,
+        "Rice Cooker (Small)": 400,
+        "Rice Cooker (Large)": 800,
+        "Induction Cooker": 2000,
+        "Air Fryer": 1400,
+        "Coffee Maker": 800,
+        "Blender": 300,
+        "Oven Toaster": 1000,
         "-- ENTERTAINMENT --": 0,
-        "LED TV (32\")": 50, "LED TV (43-55\")": 120, "LED TV (65\"+)": 200,
-        "Sound System / Speakers": 150, "Gaming Console (PS5/Xbox)": 200,
+        "LED TV (32 inch)": 50,
+        "LED TV (43 inch)": 80,
+        "LED TV (55 inch)": 120,
+        "LED TV (65 inch)": 180,
+        "Sound System / Speakers": 100,
+        "Gaming Console (PS5/Xbox)": 200,
         "-- LAUNDRY & CLEANING --": 0,
-        "Washing Machine": 400, "Spin Dryer": 300, "Fully Auto Washer": 600,
-        "Electric Iron": 1100, "Vacuum Cleaner": 1200,
-        "-- OFFICE & LIGHTING --": 0,
-        "Laptop / PC": 150, "Desktop PC (Gaming)": 450, "CCTV System": 50, "Wi-Fi Router": 15,
-        "LED Bulb (9W)": 9, "LED Tube (18W)": 18,
-        "-- WATER --": 0,
-        "Water Pump (0.5 HP)": 375, "Water Heater (Shower)": 3500
+        "Washing Machine (Single)": 350,
+        "Washing Machine (Fully Auto)": 500,
+        "Spin Dryer": 250,
+        "Clothes Dryer": 2500,
+        "Flat Iron": 1100,
+        "Vacuum Cleaner": 1200,
+        "-- OFFICE & GADGETS --": 0,
+        "Laptop": 65,
+        "Desktop PC (Office)": 150,
+        "Desktop PC (Gaming)": 400,
+        "Computer Monitor": 40,
+        "Wi-Fi Router": 15,
+        "CCTV System (4-CH)": 50,
+        "Phone Charger": 10,
+        "-- LIGHTING & WATER --": 0,
+        "LED Bulb (5W)": 5,
+        "LED Bulb (9W)": 9,
+        "LED Bulb (13W)": 13,
+        "Fluorescent Tube": 40,
+        "Water Pump (0.5 HP)": 375,
+        "Water Pump (1.0 HP)": 750,
+        "Electric Shower Heater": 3500
     };
 
     let sysConfig = { rate: 12.00, prices: { "3kW": 165000, "5kW": 275000, "8kW": 395000, "10kW": 485000, "16kW": 720000, "20kW": 890000 } };
     let currentDaily = 0;
-    let allInquiries = [];
-    let calendarDate = new Date();
-    let selectedDateFilter = null;
 
     onValue(ref(db, 'settings'), (snapshot) => {
         if(snapshot.exists()){
@@ -346,8 +343,7 @@
 
     function renderPriceInputs() {
         const container = document.getElementById('priceInputsContainer');
-        const rateInput = document.getElementById('adminKwhRate');
-        if(rateInput) rateInput.value = sysConfig.rate;
+        if(!container) return;
         container.innerHTML = "";
         Object.keys(sysConfig.prices).forEach(key => {
             const div = document.createElement('div');
@@ -401,25 +397,25 @@
     function getSystemRecommendation(daily) {
         if (daily <= 0) return { size: "---", price: 0 };
         const kw = daily / 3.5;
-        let s = "Commercial";
-        if (kw <= 3.5) s = "3kW";
-        else if (kw <= 5.5) s = "5kW";
-        else if (kw <= 8.5) s = "8kW";
-        else if (kw <= 11) s = "10kW";
-        else if (kw <= 17) s = "16kW";
-        else if (kw <= 22) s = "20kW";
-        return { size: s === "Commercial" ? "Commercial Scale" : s + " System", price: sysConfig.prices[s] || 0 };
+        let s = "3kW";
+        if (kw > 3.5 && kw <= 5.5) s = "5kW";
+        else if (kw > 5.5 && kw <= 8.5) s = "8kW";
+        else if (kw > 8.5 && kw <= 11) s = "10kW";
+        else if (kw > 11 && kw <= 17) s = "16kW";
+        else if (kw > 17) s = "20kW";
+        return { size: s + " System", price: sysConfig.prices[s] || 0 };
     }
 
     window.showView = (v) => {
-        ['calculatorView', 'loginView', 'adminView', 'adminSidebar'].forEach(id => document.getElementById(id).classList.add('hidden'));
+        ['calculatorView', 'loginView', 'adminView', 'adminSidebar'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.classList.add('hidden');
+        });
         if (v === 'admin') {
             document.getElementById('adminView').classList.remove('hidden');
             document.getElementById('adminSidebar').classList.remove('hidden');
-            if(window.innerWidth <= 768) document.getElementById('menuToggle').style.display = 'block';
         } else {
             document.getElementById(v + 'View').classList.remove('hidden');
-            document.getElementById('menuToggle').style.display = 'none';
         }
     };
 
@@ -435,7 +431,6 @@
         document.getElementById('adminSectionPricing').classList.toggle('hidden', tab !== 'pricing');
         document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
         btn.classList.add('active');
-        document.getElementById('adminSidebar').classList.remove('mobile-open');
     };
 
     document.getElementById('navAdminBtn').onclick = () => auth.currentUser ? showView('admin') : showView('login');
@@ -444,7 +439,7 @@
     document.getElementById('doLoginBtn').onclick = () => {
         signInWithEmailAndPassword(auth, document.getElementById('loginEmail').value, document.getElementById('loginPass').value)
             .then(() => showView('admin'))
-            .catch(err => alert("Error: " + err.message));
+            .catch(err => alert("Login Failed"));
     };
 
     document.getElementById('logoutBtnSidebar').onclick = () => signOut(auth).then(() => location.reload());
@@ -453,96 +448,16 @@
 
     function loadInquiries() {
         onValue(ref(db, 'inquiries'), (snapshot) => {
-            allInquiries = [];
+            const body = document.getElementById('adminTableBody');
+            if(!body) return;
+            body.innerHTML = "";
             snapshot.forEach(child => {
-                allInquiries.push({ id: child.key, ...child.val() });
+                const data = child.val();
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td style="font-size:0.7rem">${data.name}<br>${data.contact}</td><td>${data.rec}</td><td><button class="btn-danger" onclick="deleteInquiry('${child.key}')">X</button></td>`;
+                body.appendChild(tr);
             });
-            renderInquiryTable();
-            renderCalendar();
         });
-    }
-
-    function renderInquiryTable() {
-        const body = document.getElementById('adminTableBody');
-        if(!body) return;
-        body.innerHTML = "";
-        
-        let filtered = allInquiries;
-        if(selectedDateFilter) {
-            filtered = allInquiries.filter(i => i.dateDisplay === selectedDateFilter);
-        }
-
-        filtered.sort((a, b) => b.timestamp - a.timestamp);
-
-        filtered.forEach(data => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${data.dateDisplay || 'N/A'}</td>
-                <td>${data.name}</td>
-                <td>${data.contact}</td>
-                <td>${data.address || 'N/A'}</td>
-                <td>${data.rec}</td>
-                <td><button class="btn-danger" onclick="deleteInquiry('${data.id}')">Del</button></td>
-            `;
-            body.appendChild(tr);
-        });
-    }
-
-    document.getElementById('toggleCalendarBtn').onclick = function() {
-        const wrap = document.getElementById('calendarWrapper');
-        wrap.classList.toggle('hidden');
-        this.innerText = wrap.classList.contains('hidden') ? 'Show Calendar' : 'Hide Calendar';
-    };
-
-    window.changeMonth = (dir) => {
-        calendarDate.setMonth(calendarDate.getMonth() + dir);
-        renderCalendar();
-    };
-
-    window.clearDateFilter = () => {
-        selectedDateFilter = null;
-        renderCalendar();
-        renderInquiryTable();
-    };
-
-    function renderCalendar() {
-        const grid = document.getElementById('calendarGrid');
-        const monthYearLabel = document.getElementById('calendarMonthYear');
-        grid.innerHTML = "";
-
-        const year = calendarDate.getFullYear();
-        const month = calendarDate.getMonth();
-        monthYearLabel.innerText = new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(calendarDate);
-
-        const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-        days.forEach(d => grid.innerHTML += `<div class="calendar-day-head">${d}</div>`);
-
-        const firstDay = new Date(year, month, 1).getDay();
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-        const counts = {};
-        allInquiries.forEach(i => {
-            counts[i.dateDisplay] = (counts[i.dateDisplay] || 0) + 1;
-        });
-
-        for (let i = 0; i < firstDay; i++) grid.innerHTML += `<div></div>`;
-
-        for (let d = 1; d <= daysInMonth; d++) {
-            const dateStr = new Date(year, month, d).toLocaleDateString();
-            const count = counts[dateStr] || 0;
-            const isActive = selectedDateFilter === dateStr ? 'active-filter' : '';
-            const hasInq = count > 0 ? 'has-inquiry' : '';
-            
-            const dayEl = document.createElement('div');
-            dayEl.className = `calendar-day ${hasInq} ${isActive}`;
-            dayEl.innerHTML = `<span>${d}</span>${count > 0 ? `<span class="inquiry-count">${count}</span>` : ''}`;
-            dayEl.onclick = () => {
-                selectedDateFilter = dateStr;
-                renderCalendar();
-                renderInquiryTable();
-            };
-            grid.appendChild(dayEl);
-        }
     }
 
     window.deleteInquiry = (k) => { if(confirm('Delete?')) remove(ref(db, 'inquiries/' + k)); };
@@ -551,12 +466,9 @@
         const name = document.getElementById('clientName').value;
         const contact = document.getElementById('clientContact').value;
         if(!name || !contact) return alert("Missing info");
-        if(contact.length !== 11 || isNaN(contact)) return alert("Please enter a valid 11-digit contact number.");
-
         const rec = getSystemRecommendation(currentDaily);
         push(ref(db, 'inquiries'), {
             timestamp: Date.now(), 
-            dateDisplay: new Date().toLocaleDateString(),
             name, contact, email: document.getElementById('clientEmail').value,
             address: document.getElementById('clientAddress').value,
             rec: rec.size, price: rec.price
@@ -567,17 +479,17 @@
         const tr = document.createElement('tr');
         let options = Object.keys(APPLIANCE_LIBRARY).map(k => {
             const isDisabled = k.startsWith('--') ? 'disabled' : '';
-            const style = k.startsWith('--') ? 'style="background:#f1f5f9; font-weight:bold; color:var(--brand-primary)"' : '';
-            return `<option value="${APPLIANCE_LIBRARY[k]}" ${isDisabled} ${style}>${k}</option>`;
+            const isHeader = k.startsWith('--') ? 'style="background:#eee; font-weight:bold; color:#1b4332;"' : '';
+            return `<option value="${APPLIANCE_LIBRARY[k]}" ${isDisabled} ${isHeader}>${k}</option>`;
         }).join('');
         
         tr.innerHTML = `
-            <td><select class="lib-select" onchange="this.parentElement.nextElementSibling.children[0].value=this.value; updateTable();">${options}</select></td>
-            <td><input type="number" class="w" value="0" oninput="updateTable()"></td>
-            <td><input type="number" class="q" value="1" oninput="updateTable()"></td>
-            <td><input type="number" class="h" value="1" oninput="updateTable()"></td>
-            <td class="row-kwh">0.0</td>
-            <td><button class="btn-danger" onclick="this.parentElement.parentElement.remove();updateTable();">×</button></td>
+            <td data-label="Appliance"><select onchange="this.parentElement.parentElement.querySelector('.w').value=this.value; updateTable();">${options}</select></td>
+            <td data-label="Watts"><input type="number" class="w" value="0" oninput="updateTable()"></td>
+            <td data-label="Qty"><input type="number" class="q" value="1" oninput="updateTable()"></td>
+            <td data-label="Hrs/Day"><input type="number" class="h" value="1" oninput="updateTable()"></td>
+            <td data-label="Total kWh" class="row-kwh">0.00</td>
+            <td class="btn-danger-row"><button class="btn-danger" onclick="this.parentElement.parentElement.remove();updateTable();">×</button></td>
         `;
         document.getElementById('applianceBody').appendChild(tr);
     };
