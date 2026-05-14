@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Enterprise Solar Calculator | NetZero PH</title>
+    <title>Enterprise Solar Calculator | NZ BUILD AND ENERGY</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -138,7 +138,12 @@
 
 <header>
     <div class="header-container">
-        <div class="brand"><div class="brand-text"><h1>NetZero PH</h1><p>Solar Engineering</p></div></div>
+        <div class="brand">
+            <div class="brand-text">
+                <h1>NZ BUILD AND ENERGY</h1>
+                <p>ABUCANY BATAAN | 09771638925</p>
+            </div>
+        </div>
         <div class="nav-tabs" style="display: flex; gap: 5px;">
             <button class="btn btn-outline" id="menuToggle" style="display: none;">Menu</button>
             <button class="btn btn-outline" id="navAdminBtn">Admin Panel</button>
@@ -215,7 +220,7 @@
                 <div class="card-header"><h2>2. Get Your Proposal</h2></div>
                 <div class="client-info-grid">
                     <input type="text" id="clientName" placeholder="Full Name">
-                    <input type="tel" id="clientContact" placeholder="Contact Number (11 Digits)" maxlength="11">
+                    <input type="tel" id="clientContact" placeholder="09771638925 (Contact Number)" maxlength="11">
                     <input type="email" id="clientEmail" placeholder="Email Address">
                     <input type="text" id="clientAddress" placeholder="Location (City/Province)">
                 </div>
@@ -467,7 +472,6 @@
             filtered = allInquiries.filter(i => i.dateDisplay === selectedDateFilter);
         }
 
-        // Sort by timestamp descending
         filtered.sort((a, b) => b.timestamp - a.timestamp);
 
         filtered.forEach(data => {
@@ -484,7 +488,6 @@
         });
     }
 
-    // Calendar Logic
     document.getElementById('toggleCalendarBtn').onclick = function() {
         const wrap = document.getElementById('calendarWrapper');
         wrap.classList.toggle('hidden');
@@ -517,7 +520,6 @@
         const firstDay = new Date(year, month, 1).getDay();
         const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-        // Inquiries group by date for the markers
         const counts = {};
         allInquiries.forEach(i => {
             counts[i.dateDisplay] = (counts[i.dateDisplay] || 0) + 1;
